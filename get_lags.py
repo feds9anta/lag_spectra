@@ -18,6 +18,7 @@ import argparse
 import subprocess
 import numpy as np
 from astropy.io import fits
+from astropy.io import ascii
 from datetime import datetime
 import os.path
 import matplotlib.pyplot as plt
@@ -29,7 +30,11 @@ import tools  ## in https://github.com/abigailStev/whizzy_scripts
 
 __author__ = "Abigail Stevens <A.L.Stevens at uva.nl>"
 __year__ = "2015"
-
+################################################################################
+##
+## November 2015, Federico M. Vincentelli:
+## Minor adjustements for application to IR data
+##
 ################################################################################
 def get_inputs(in_file):
     """
@@ -286,7 +291,8 @@ def plot_lag_freq(out_root, plot_ext, prefix, freq, phase, err_phase, tlag, \
 
     font_prop = font_manager.FontProperties(size=20)
 
-    plot_file = out_root + "_lag-freq." + plot_ext
+    name="_lag-frequency_%.2f-%.2fHz." %(lo_freq,up_freq)
+    plot_file = out_root + name + plot_ext
     print "Lag-frequency spectrum: %s" % plot_file
 
     fig, ax = plt.subplots(1, 1, figsize=(10,7.5), dpi=300, tight_layout=True)
@@ -333,8 +339,8 @@ def plot_lag_energy(out_root, energies_tab, plot_ext, prefix, phase, err_phase,
     energy_list = [np.mean([x, y]) for x,y in tools.pairwise(energies_tab)]
     energy_err = [np.abs(a-b) for (a,b) in zip(energy_list, energies_tab[0:-1])]
     e_chans = np.arange(0, detchans)
-
-    plot_file = out_root + "_lag-energy." + plot_ext
+    name="lag-energy_%.2f-%.2fHz." %(lo_freq,up_freq)
+    plot_file = out_root +"_" + name + plot_ext
     print "Lag-energy spectrum: %s" % plot_file
 
     ## Deleting the values at energy channel 10 for RXTE PCA event-mode data
@@ -348,22 +354,30 @@ def plot_lag_energy(out_root, energies_tab, plot_ext, prefix, phase, err_phase,
         energy_list = np.delete(energy_list, 10)
         energy_err = np.delete(energy_err, 10)
 
+		#####################
+#	writes ascii file.dat with lag energy spectrum!
+		#####################
+    data_name=name +"dat" 
+    data=[energy_list[2:26], tlag[2:26],energy_err[2:26],err_tlag[2:26]]
+    print data
+    ascii.write([energy_list[2:26], tlag[2:26],energy_err[2:26],err_tlag[2:26]],
+            data_name,exclude_names=['y'])
+
+#    data_name = data_name.replace("/lag_spectra/", "/lag_spectra/out_lags/GX339-4")
+
+#    col1i = fits.Column(name='ENERGY',format= 'D', energy_list[2:26])
+#    col2i = fits.Column(name='TIME_LAGS',format= 'D', array=tlag[2:26])
+#    col3i = fits.Column(name='ERR_ENERGY',format= 'D', array=energy_err[2:26])
+#    col4i = fits.Column(name='ERROR_TLAGS',format= 'D', array=err_tlag[2:26])
+#    colsi = fits.ColDefs([col1i,col2i,col3i,col4I])
+#    tbhdu = fits.BinTableHDU.from_columns(colsi)
+#    thdulist = fits.HDUList([tbhdu])
+#    thdulist.writeto('lag_energy.fits')
+
     #############
     ## Plotting!
     #############
-
     fig, ax = plt.subplots(1, 1, figsize=(10,7.5), dpi=300, tight_layout=True)
-    # ax.plot([0,detchans],[0,0], lw=1.5, ls='dashed', c='black')
-    # 	ax.plot([0,detchans],[np.pi,np.pi], lw=1.5, ls='dashed', c='black')
-    # 	ax.plot([0,detchans],[-np.pi,-np.pi], lw=1.5, ls='dashed', c='black')
-    # 	ax.errorbar(e_chans, phase, yerr=err_phase, lw=3, c='red', \
-    # 		ls="steps-mid", elinewidth=2, capsize=2)
-    # ax.errorbar(e_chans, tlag, yerr=err_tlag, ls='none', marker='x', \
-    #             ms=10, mew=2, mec='red', ecolor='red', \
-    #             elinewidth=2, capsize=2)
-    # ax.set_xlabel('Energy channel (0-%d)' % (detchans - 1), \
-    #               fontproperties=font_prop)
-    # ax.set_xlim(1.5, 25.5)
 
     ax.hlines(0.0, 3, 21, linestyle='dashed', lw=2, color='gray')
     ax.errorbar(energy_list[2:26], tlag[2:26], xerr=energy_err[2:26],
@@ -382,11 +396,11 @@ def plot_lag_energy(out_root, energies_tab, plot_ext, prefix, phase, err_phase,
     # ax.set_xlim(0.3, 10)
     ax.set_xscale('log')
     x_maj_loc = [5,10,20]
-    y_maj_loc = [-0.005, 0, 0.005, 0.01, 0.015]
+    y_maj_loc = [-0.15, -0.1,-0.05, 0, 0.05, 0.1, 0.15]
     ax.set_xticks(x_maj_loc)
     ax.set_yticks(y_maj_loc)
     xLocator = MultipleLocator(1)  ## loc of minor ticks on x-axis
-    yLocator = MultipleLocator(0.001)  ## loc of minor ticks on y-axis
+    yLocator = MultipleLocator(0.05)  ## loc of minor ticks on y-axis
     ax.xaxis.set_minor_locator(xLocator)
     ax.yaxis.set_minor_locator(yLocator)
     ax.xaxis.set_major_formatter(ScalarFormatter())
@@ -394,7 +408,7 @@ def plot_lag_energy(out_root, energies_tab, plot_ext, prefix, phase, err_phase,
     ax.set_ylabel('Time lag (s)', fontproperties=font_prop)
     # ax.set_ylabel('Phase lag (radians)', fontproperties=font_prop)
     # ax.set_ylim(1.3 * np.min(tlag[2:25]), 1.30 * np.max(tlag[2:25]))
-    ax.set_ylim(-0.01, 0.017)
+    ax.set_ylim(-0.17, 0.17)
     # ax.set_ylim(-0.4, 0.5)
     ax.tick_params(axis='x', labelsize=18)
     ax.tick_params(axis='y', labelsize=18)
@@ -405,8 +419,6 @@ def plot_lag_energy(out_root, energies_tab, plot_ext, prefix, phase, err_phase,
     plt.savefig(plot_file)
     # 	plt.show()
     plt.close()
-    # subprocess.call(['open', plot_file])
-
 
 ################################################################################
 def compute_lags(freq, cs_avg, power_ci, power_ref, dt, n_bins, detchans,
@@ -524,7 +536,7 @@ def main(in_file, out_file, energies_file, plot_root, prefix, plot_ext="eps",
     noise subtracted.
 
     """
-
+    print "get lags*************************************"
     energies_tab = np.loadtxt(energies_file)
 
     ## Get necessary information and data from the input file

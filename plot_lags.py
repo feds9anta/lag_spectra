@@ -24,7 +24,7 @@ Written in Python 2.7.
 """
 
 
-def plot_lag-frequency():
+#def plot_lag-frequency():
 
 
 def plot_lag-energy():
